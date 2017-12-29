@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv sh
+
+
+cd /app
+while true; do
+	exec python server.py
+done

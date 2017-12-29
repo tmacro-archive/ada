@@ -1,0 +1,10 @@
+---
+meta:
+  app: ada
+
+http:
+  host: dev.tmacs.space
+
+zmq:
+  path: tcp://you.are.poor.i.got.trap.money:35140
+  pub_key: server.pub
