@@ -6,11 +6,8 @@ greenlet==0.4.12
 itsdangerous==0.24
 Jinja2==2.10
 MarkupSafe==1.0
-numpy==1.12.1
 PyYAML==3.12
 pyzmq==16.0.3
 uWSGI==2.0.15
-wavio==0.0.3
-webrtcvad==2.0.10
 Werkzeug==0.13
 zmq==0.0.0

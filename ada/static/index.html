@@ -1,0 +1,177 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Audio Recorder</title>
+	<script src="http://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+	 crossorigin="anonymous"></script>
+	<script src="/static/audiodisplay.js"></script>
+	<script src="/static/resample.js"></script>
+	<script src="/static/recorder.js"></script>
+	<script src="/static/main.js"></script>
+	<script src="/static/jquery.easing.1.3.js"></script>
+	<script type="text/javascript" src="/static/vad.js"></script>
+	<link rel="stylesheet" href="/static/css/bubble.css">
+	<style>
+		html {
+			overflow: hidden;
+		}
+
+		body {
+			font: 12pt Arial, sans-serif;
+			background: black;
+			display: flex;
+			flex-direction: column;
+			height: 100vh;
+			width: 100%;
+			margin: 0 0;
+		}
+
+		canvas {
+			display: inline-block;
+			/* background: #202020;	*/
+			width: 100%;
+			height: 100%;
+			/* box-shadow: 0px 0px 10px blue; */
+		}
+
+		#controls {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-around;
+			height: 20%;
+			width: 100%;
+		}
+
+		#record {
+			height: 15vh;
+		}
+
+		#record.recording {
+			background: red;
+			background: -webkit-radial-gradient(center, ellipse cover, #ff0000 0%, lightgrey 75%, lightgrey 100%, #7db9e8 100%);
+			background: -moz-radial-gradient(center, ellipse cover, #ff0000 0%, lightgrey 75%, lightgrey 100%, #7db9e8 100%);
+			background: radial-gradient(center, ellipse cover, #ff0000 0%, lightgrey 75%, lightgrey 100%, #7db9e8 100%);
+		}
+
+		#save,
+		#save img {
+			height: 10vh;
+		}
+
+		#save {
+			opacity: 0.25;
+		}
+
+		#save[download] {
+			opacity: 1;
+		}
+
+		#viz {
+			height: 35%;
+			width: 100%;
+			display: flex;
+			flex-direction: row;
+			justify-content: space-around;
+			align-items: center;
+		}
+
+		.feedback {
+			height: 60%;
+			overflow-y: auto;
+		}
+	</style>
+</head>
+<script type="text/javascript">
+
+	// Create AudioContext
+	window.AudioContext = window.AudioContext || window.webkitAudioContext;
+	var audioContext = new AudioContext();
+	var state = 'waiting';
+
+
+	// Post our wav data to the server here
+	function scrollToBottom() {
+		messages.scrollTop = messages.scrollHeight;
+	}
+
+	// Define function called by getUserMedia 
+	function startUserMedia(stream) {
+		// Create MediaStreamAudioSourceNode
+		var source = audioContext.createMediaStreamSource(stream);
+
+		// Setup options
+		var options = {
+			source: source,
+			voice_start: function () {
+				if (state == 'waiting') {
+					console.log('voice_start');
+					state = 'recording';
+					startRecording();
+				} else {
+					console.log('skipping voiced segment');
+				}
+			},
+			voice_stop: function () {
+				if (state == 'recording') {
+					console.log('voice_stop');
+					state = 'translating';
+					stopRecording(function (wav) {
+						console.log('posting data')
+						var xhr = new XMLHttpRequest();
+						xhr.responseType = 'json';
+						xhr.open('POST', '/process');
+						xhr.onload = function () {
+							var resp = xhr.response;
+							// $('.feedback').empty();
+							$(resp.translation).hide().appendTo(".feedback").fadeIn('fast');
+							// $('.feedback').append(resp.translation)
+							console.log(resp.translation);
+							$('.feedback').append(resp.response)
+							// console.log(resp.response);
+							state = 'waiting';
+							$('.feedback').scrollTop($('.feedback').height());
+						};
+						xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+						xhr.send(wav);
+					});
+				}
+			}
+		};
+
+		// Create VAD
+		var vad = new VAD(options);
+		// vad.vadState = true;
+	}
+
+	// Ask for audio device
+	navigator.getUserMedia = navigator.getUserMedia ||
+		navigator.mozGetUserMedia ||
+		navigator.webkitGetUserMedia;
+	navigator.getUserMedia({ audio: true }, startUserMedia, function (e) {
+		console.log("No live audio input in this browser: " + e);
+	});
+</script>
+
+<body>
+	<div id="viz">
+		<canvas id="analyser" width="1366" height="500"></canvas>
+		<!-- <canvas id="wavedisplay" width="1024" height="500"></canvas> -->
+	</div>
+	<div class="feedback">
+		<!-- <div class="talk-bubble tri-right right-top">
+			<div class="talktext">
+				<p>This one adon the left,fy the location.</p>
+			</div>
+		</div>
+		<div class="talk-bubble tri-right left-top">
+			<div class="talktext">
+				<p>This one adds a right triangle on the left, pecify the location.</p>
+			</div>
+		</div> -->
+	</div>
+</body>
+
+</html>
